@@ -64,13 +64,18 @@ if 'harga_tagihan' not in st.session_state: st.session_state.harga_tagihan = 0
 # 4. FUNGSI BISNIS
 # ==========================================
 def buat_link_pembayaran(harga, order_id):
-    snap = midtransclient.Snap(is_production=False, server_key=MIDTRANS_SERVER_KEY)
-    param = {
-        "transaction_details": {"order_id": order_id, "gross_amount": harga},
-        "customer_details": {"first_name": "Guru", "email": "guru@contoh.com"}
-    }
-    transaction = snap.create_transaction(param)
-    return transaction['redirect_url']
+    try:
+        snap = midtransclient.Snap(is_production=False, server_key=MIDTRANS_SERVER_KEY)
+        param = {
+            "transaction_details": {"order_id": order_id, "gross_amount": int(harga)}, # Pastikan integer
+            "customer_details": {"first_name": "Guru", "email": "guru@contoh.com"}
+        }
+        transaction = snap.create_transaction(param)
+        return transaction['redirect_url']
+    except Exception as e:
+        # Tampilkan error ke layar agar kita tahu penyebabnya
+        st.error(f"Error Midtrans: {e}") 
+        return None
 
 def cek_status_midtrans(order_id):
     try:
