@@ -1,0 +1,6 @@
+streamlit
+google-generativeai
+midtransclient
+python-dotenv
+python-docx
+pandas
