@@ -65,7 +65,7 @@ if 'harga_tagihan' not in st.session_state: st.session_state.harga_tagihan = 0
 # ==========================================
 def buat_link_pembayaran(harga, order_id):
     try:
-        snap = midtransclient.Snap(is_production=False, server_key=MIDTRANS_SERVER_KEY)
+        snap = midtransclient.Snap(is_production=True, server_key=MIDTRANS_SERVER_KEY)
         param = {
             "transaction_details": {"order_id": order_id, "gross_amount": int(harga)}, # Pastikan integer
             "customer_details": {"first_name": "Guru", "email": "guru@contoh.com"}
