@@ -127,4 +127,47 @@ if st.session_state.order_id is None:
         mata_pelajaran = st.text_input("Mata Pelajaran:")
         fase_kelas = st.text_input("Fase / Kelas:")
         materi_pokok = st.text_input("Materi Pokok:")
-        alokasi_waktu = st.text_input
+        alokasi_waktu = st.text_input("Alokasi Waktu:")
+        tujuan_pembelajaran = st.text_area("Tujuan Pembelajaran:")
+        pilihan_tipe = st.radio("Pilih layanan:", ["RPP Standar (Rp 5.000)", "Modul Ajar PRO (Rp 10.000)"])
+        submit_button = st.form_submit_button("Lanjut ke Pembayaran")
+
+    if submit_button:
+        if not all([mata_pelajaran, fase_kelas, materi_pokok, alokasi_waktu, tujuan_pembelajaran]):
+            st.warning("Lengkapi semua data!")
+        else:
+            harga_final = 5000 if "Standar" in pilihan_tipe else 10000
+            st.session_state.order_id = f"RPP-{str(uuid.uuid4().hex[:8]).upper()}"
+            st.session_state.harga_tagihan = harga_final
+            st.session_state.data_rpp = {
+                "mapel": mata_pelajaran, "fase": fase_kelas, "materi": materi_pokok, 
+                "waktu": alokasi_waktu, "tujuan": tujuan_pembelajaran,
+                "tipe": "Standar" if "Standar" in pilihan_tipe else "Pro"
+            }
+            with st.spinner('Menghubungkan ke pembayaran...'):
+                st.session_state.payment_url = buat_link_pembayaran(harga_final, st.session_state.order_id)
+            st.rerun()
+
+else:
+    if st.session_state.hasil_rpp is not None:
+        st.success("Pembayaran Berhasil!")
+        st.subheader(f"📚 HASIL {st.session_state.data_rpp['tipe'].upper()} ANDA")
+        st.markdown(st.session_state.hasil_rpp)
+        file_docx = export_ke_docx(st.session_state.hasil_rpp)
+        st.download_button("📥 Unduh RPP (.docx)", file_docx, f"RPP_{st.session_state.data_rpp['materi']}.docx")
+        if st.button("🔄 Buat Baru"):
+            st.session_state.update({'order_id': None, 'hasil_rpp': None, 'log_tersimpan': False})
+            st.rerun()
+    else:
+        st.info(f"Tagihan ID: **{st.session_state.order_id}** | Total: **Rp {st.session_state.harga_tagihan}**")
+        st.markdown(f'<a href="{st.session_state.payment_url}" target="_blank"><button style="background-color:#4CAF50; color:white; padding:12px 30px; border:none; border-radius:4px; cursor:pointer;">👉 KLIK BAYAR</button></a>', unsafe_allow_html=True)
+        if st.button("🔄 Cek Pembayaran"):
+            status = cek_status_midtrans(st.session_state.order_id)
+            if status in ['settlement', 'capture']:
+                with st.spinner("AI sedang menyusun RPP..."):
+                    st.session_state.hasil_rpp = generate_rpp_ai(st.session_state.data_rpp)
+                    if not st.session_state.log_tersimpan:
+                        simpan_log(st.session_state.order_id, st.session_state.data_rpp['mapel'], st.session_state.data_rpp['materi'], st.session_state.data_rpp['tipe'], "Berhasil")
+                        st.session_state.log_tersimpan = True
+                    st.rerun()
+            else: st.warning("Pembayaran belum terdeteksi.")
